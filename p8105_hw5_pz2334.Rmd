@@ -1,0 +1,130 @@
+---
+title: "Homework 9"
+author: "Puyuan Zhang"
+date: "`r Sys.Date()`"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(broom)
+library(ggplot2)
+library(dplyr)
+library(purrr)
+library(readr)
+```
+
+## Problem 2
+```{r}
+n <- 30
+sd <- 5
+sim <- 5000
+mean <- 0:6
+alpha <- 0.05
+
+set.seed(241109)
+test_result_1 <- function(mean, n, sd) {
+  sample_data <- rnorm(n, mean, sd)
+  test_result <- tidy(t.test(sample_data, mu = 0))
+  data.frame(mean = mean, p_value = test_result$p.value, estimate = test_result$estimate)
+}
+
+simulate_t_tests <- function(mean, n, sd, sim) {
+  map_dfr(1:sim, \(x)test_result_1(mean, n, sd))
+}
+
+mean_pval_table <- map_dfr(mean, \(x) simulate_t_tests(x, n, sd, sim))
+```
+```{r}
+power_res <- mean_pval_table %>%
+  group_by(mean) %>%
+  summarise(power = mean(p_value < alpha))
+```
+```{r}
+ggplot(power_res, aes(x = mean, y = power)) +
+  geom_line() +
+  geom_point() +
+  labs(
+       x = "Mean",
+       y = "Power (Proportion of Rejections)")
+```
+
+The plot shows that when the mean is 0, the power is low, meaning the test rarely rejects the null hypothesis, which is expected. As the mean increases, power rises steadily, showing the test gets better at catching true differences. By the time the mean hits 4 or higher, power is near 1, meaning the test almost always correctly rejects the null. This tells us that the further the true mean is from 0, the more likely the test will detect it. If you're working with small effect sizes, you might need more data or less variability to improve power.
+
+```{r}
+average_est <- mean_pval_table %>%
+  group_by(mean) %>%
+  summarise(average_estimate = mean(estimate))
+```
+
+```{r}
+average_est_rej <- mean_pval_table %>%
+  filter(p_value< alpha) %>%
+  group_by(mean) %>%
+  summarise(average_estimate = mean(estimate))
+```
+
+```{r}
+ggplot() +
+  geom_line(data = average_est, aes(x = mean, y = average_estimate), color = "blue") +
+  geom_line(data = average_est_rej, aes(x = mean, y = average_estimate), color = "red", linetype = "dashed") +
+  geom_point(data = average_est, aes(x = mean, y = average_estimate), color = "blue") +
+  geom_point(data = average_est_rej, aes(x = mean, y = average_estimate), color = "red") +
+  labs(
+       x = "Mean",
+       y = "Average Estimate of Sample Mean")
+```
+
+When the null hypothesis is rejected, the sample average of $\hat{\mu}$ is usually close to the true value of $\mu$ because these tests have enough power to spot the real effect. But when the null isn’t rejected, the average can be off due to variability or random sampling quirks. For instance, when $\mu= 1$, some sample estimates can be above 2 and still not lead to rejection if there’s a lot of variability. This shows that not rejecting the null doesn’t always mean the sample mean is close to 0—it could just mean the data had more variability or some outliers.
+
+## Problem 3
+```{r}
+homicide_data <- read_csv("data-homicides/homicide-data.csv")
+```
+```{r}
+data <- homicide_data |>
+  mutate(city_state = paste(city, state, sep = ", ")) |>
+  group_by(city_state) |>
+  summarize(
+    total_homicides = n(),
+    unsolved_homicides = sum(disposition %in% c("Closed without arrest", "Open/No arrest"))
+  )
+```
+```{r}
+result_1 <- prop.test(
+  data$unsolved_homicides[data$city_state == "Baltimore, MD"],
+  data$total_homicides[data$city_state == "Baltimore, MD"]
+)
+result_tidy_1 <- tidy(result_1) |>
+  select(estimate, conf.low, conf.high)
+result_tidy_1
+```
+```{r warning = F}
+results_2 <- data |>
+  mutate(
+    test_output = map2(unsolved_homicides, total_homicides, \(x,y)tidy(prop.test(x, y))),
+    proportion = map_dbl(test_output, \(x)x$estimate),
+    conf_low = map_dbl(test_output, \(x)x$conf.low),
+    conf_high = map_dbl(test_output, \(x)x$conf.high)
+  ) |>
+  select(city_state, proportion, conf_low, conf_high)
+results_2
+```
+```{r}
+ggplot(results_2, aes(x = reorder(city_state, proportion), y = proportion)) +
+  geom_point() +
+  geom_errorbar(aes(ymin = conf_low, ymax = conf_high)) +
+  coord_flip() +
+  labs(
+    x = "City",
+    y = "Proportion of Unsolved Homicides"
+  )
+```
+
+
+
+
+
+
+
+
