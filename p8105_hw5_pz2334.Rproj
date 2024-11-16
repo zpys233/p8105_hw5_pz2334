@@ -11,3 +11,6 @@ Encoding: CP936
 
 RnwWeave: Sweave
 LaTeX: pdfLaTeX
+
+QuitChildProcessesOnExit: Yes
+DisableExecuteRprofile: Yes

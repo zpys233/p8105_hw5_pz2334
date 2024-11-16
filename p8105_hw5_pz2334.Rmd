@@ -49,7 +49,7 @@ ggplot(power_res, aes(x = mean, y = power)) +
        y = "Power (Proportion of Rejections)")
 ```
 
-The plot shows that when the mean is 0, the power is low, meaning the test rarely rejects the null hypothesis, which is expected. As the mean increases, power rises steadily, showing the test gets better at catching true differences. By the time the mean hits 4 or higher, power is near 1, meaning the test almost always correctly rejects the null. This tells us that the further the true mean is from 0, the more likely the test will detect it. If you're working with small effect sizes, you might need more data or less variability to improve power.
+The plot shows that when the mean is 0, the proportion of rejection is low, meaning the test rarely rejects the null hypothesis, which is expected. As the mean increases, power rises steadily, showing the test gets better at catching true differences. By the time the mean hits 4 or higher, power is near 1, meaning the test almost always correctly rejects the null. This tells us that the further the true mean is from 0, the more likely the test will detect it. If you're working with small effect sizes, you might need more data or less variability to improve power.
 
 ```{r}
 average_est <- mean_pval_table %>%
@@ -75,7 +75,7 @@ ggplot() +
        y = "Average Estimate of Sample Mean")
 ```
 
-When the null hypothesis is rejected, the sample average of $\hat{\mu}$ is usually close to the true value of $\mu$ because these tests have enough power to spot the real effect. But when the null isn’t rejected, the average can be off due to variability or random sampling quirks. For instance, when $\mu= 1$, some sample estimates can be above 2 and still not lead to rejection if there’s a lot of variability. This shows that not rejecting the null doesn’t always mean the sample mean is close to 0—it could just mean the data had more variability or some outliers.
+The sample average of $\hat{\mu}$ is usually close to the true value of $\mu$ because these tests have enough power to spot the real effect. But the average sometimes can be off due to variability or random sampling quirks. For instance, when $\mu= 1$, some sample estimates can be above 2 and still not lead to rejection if there’s a lot of variability. This shows that not rejecting the null doesn’t always mean the sample mean is close to 0—it could just mean the data had more variability or some outliers.
 
 ## Problem 3
 ```{r}
@@ -89,6 +89,7 @@ data <- homicide_data |>
     total_homicides = n(),
     unsolved_homicides = sum(disposition %in% c("Closed without arrest", "Open/No arrest"))
   )
+head(data, 10)
 ```
 ```{r}
 result_1 <- prop.test(
@@ -108,7 +109,7 @@ results_2 <- data |>
     conf_high = map_dbl(test_output, \(x)x$conf.high)
   ) |>
   select(city_state, proportion, conf_low, conf_high)
-results_2
+head(results_2, 10)
 ```
 ```{r}
 ggplot(results_2, aes(x = reorder(city_state, proportion), y = proportion)) +
